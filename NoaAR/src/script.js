@@ -2,15 +2,11 @@ import './style.css';
 import * as THREE from 'three';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { AnimationMixer } from 'three';
 
-//let limbs = 19;
 let camera, scene, renderer;
 let controller;
 let rotationSpeed = [];
-
-
-init();
-animate();
 let rootBaseLine = null;
 let rootDetailLine = null;
 let rootSmallDetail = null;
@@ -19,6 +15,10 @@ let texturePathDetailLine = "/Textures/DetailLine.png";
 let texturePathSmallDetail = "/Textures/SmallDetail.png";
 
 const texturelLoader = new THREE.TextureLoader();
+
+let mixerBase, actionBase,
+    mixerDetail, actionDetail,
+    mixerSmall, actionSmall;
 
 const BaseLineMaterial = new THREE.MeshStandardMaterial({
     map: texturelLoader.load(texturePathBaseLine),
@@ -48,7 +48,7 @@ function init() {
 	document.body.appendChild(container);
 
 	scene = new THREE.Scene();
-	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+	camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
 
 	const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
 	light.position.set(0.5, 1, 0.25);
@@ -66,59 +66,101 @@ function init() {
     let meshBaseLine = null;
     let meshDetailLine = null;
     let meshSmallDetail = null;
+
+
+    let masterScale = 0.05;
+    let masterPos = [0, 0, -20];
+
    
     ////// loading materials on the mesh
     // 51 BaseLine
 	gltfLoader.load(
-		'BaseLine.glb',
+		'/ReadyMeshes/baseLine.glb',
 		(gltf) => {
-			console.log(gltf.scene);
+            console.log(gltf.scene);
+            const model = gltf;
             rootBaseLine = gltf.scene.children[0].children[0];
-			gltf.scene.children[0].scale.set(0.05, 0.05, 0.05);
+            console.log(model);
+            const clip = gltf.animations[0];
+            mixerBase = new AnimationMixer(gltf.scene); 
+            actionBase = mixerBase.clipAction(clip);
+            actionBase.setLoop(THREE.LoopPingPong);
+            actionBase.timeScale = 0.01;
+            actionBase.play();
+            gltf.scene.children[0].scale.set(masterScale, masterScale, masterScale);
             meshBaseLine = gltf.scene.children[0];
             for (let i = 0; i < 51; i++) {
                 rotationSpeed.push(randomRotationIncrement());
-                root.children[i].children[0].material = BaseLineMaterial;
+                rootBaseLine.children[i].children[0].material = BaseLineMaterial;
             }
+            meshBaseLine.position.set(masterPos[0],masterPos[1],masterPos[2]).applyMatrix4(controller.matrixWorld);
+            meshBaseLine.quaternion.setFromRotationMatrix(controller.matrixWorld);
+            scene.add(meshBaseLine);
 		}
     );
 
     // 52 DetailLine
     gltfLoader.load(
-        'DetailLine.glb',
+        '/ReadyMeshes/detailLine.glb',
         (gltf) => {
             console.log(gltf.scene);
             rootDetailLine = gltf.scene.children[0].children[0];
-            gltf.scene.children[0].scale.set(0.05, 0.05, 0.05);
+            const clip = gltf.animations[0];
+            mixerDetail = new AnimationMixer(gltf.scene);
+            actionDetail = mixerDetail.clipAction(clip);
+            actionDetail.setLoop(THREE.LoopPingPong);
+            actionDetail.timeScale = 0.01;
+            actionDetail.play();
+            gltf.scene.children[0].scale.set(masterScale, masterScale, masterScale);
             meshDetailLine = gltf.scene.children[0];
             for (let i = 0; i < 52; i++) {
                 rotationSpeed.push(randomRotationIncrement());
-                root.children[i].children[0].material = DetailLineMaterial;
+                rootDetailLine.children[i].children[0].material = DetailLineMaterial;
             }
+            meshDetailLine.position.set(masterPos[0], masterPos[1], masterPos[2]).applyMatrix4(controller.matrixWorld);
+            meshDetailLine.quaternion.setFromRotationMatrix(controller.matrixWorld);
+            scene.add(meshDetailLine);
+
         }
     );
 
     // 38 SmallDetail
     gltfLoader.load(
-        'SmallDetail.glb',
+        '/ReadyMeshes/smallDetail.glb',
         (gltf) => {
             console.log(gltf.scene);
             rootSmallDetail = gltf.scene.children[0].children[0];
-            gltf.scene.children[0].scale.set(0.05, 0.05, 0.05);
+            const clip = gltf.animations[0];
+            mixerSmall = new AnimationMixer(gltf.scene);
+            actionSmall = mixerSmall.clipAction(clip);
+            actionSmall.setLoop(THREE.LoopPingPong);
+            actionSmall.timeScale = 0.01;   
+            actionSmall.play();   
+            gltf.scene.children[0].scale.set(masterScale, masterScale, masterScale);
             meshSmallDetail = gltf.scene.children[0];
             for (let i = 0; i < 38; i++) {
                 rotationSpeed.push(randomRotationIncrement());
-                root.children[i].children[0].material = SmallDetailMaterial;
+                rootSmallDetail.children[i].children[0].material = SmallDetailMaterial;
             }
+            meshSmallDetail.position.set(masterPos[0], masterPos[1], masterPos[2]).applyMatrix4(controller.matrixWorld);
+            meshSmallDetail.quaternion.setFromRotationMatrix(controller.matrixWorld);
+            scene.add(meshSmallDetail);
         }
     );
 
 
 
-	function onSelect() {
-		mesh.position.set(0, 0, -10).applyMatrix4(controller.matrixWorld);
-		mesh.quaternion.setFromRotationMatrix(controller.matrixWorld);
-		scene.add(mesh);
+    function onSelect() {
+        //place the objects
+        meshSmallDetail.position.set(masterPos[0], masterPos[1], masterPos[2]).applyMatrix4(controller.matrixWorld);
+        meshSmallDetail.quaternion.setFromRotationMatrix(controller.matrixWorld);
+        scene.add(meshSmallDetail);
+        meshDetailLine.position.set(masterPos[0], masterPos[1], masterPos[2]).applyMatrix4(controller.matrixWorld);
+        meshDetailLine.quaternion.setFromRotationMatrix(controller.matrixWorld);
+        scene.add(meshDetailLine);
+        meshBaseLine.position.set(masterPos[0], masterPos[1], masterPos[2]).applyMatrix4(controller.matrixWorld);
+        meshBaseLine.quaternion.setFromRotationMatrix(controller.matrixWorld);
+        scene.add(meshBaseLine);
 	}
 
 	controller = renderer.xr.getController(0);
@@ -134,7 +176,6 @@ function onWindowResize() {
 
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
-
 	renderer.setSize(window.innerWidth, window.innerHeight);
 
 }
@@ -175,7 +216,8 @@ function animation() {
 
 
 function randomRotationIncrement() {
-    return Math.random(0, 9) * 0.01;
+    let direction = (Math.random(0, 1) > 0.5) ? 1 : -1;
+    return Math.random(0, 2) * 0.01 * direction;
 }
 
 
@@ -192,7 +234,13 @@ const tick = () => {
 	const deltaTime = elapsedTime - previousTime;
 	previousTime = elapsedTime;
 
-	animation();
+	//animation();
+    if (mixerBase != null) mixerBase.update(deltaTime);
+    if (mixerSmall != null) mixerSmall.update(deltaTime);
+    if (mixerDetail != null) mixerDetail.update(deltaTime);
+
+
+
 
 	// Call tick again on the next frame
 	window.requestAnimationFrame(tick)
@@ -201,5 +249,7 @@ const tick = () => {
 	}
 }
 
-tick();
 
+init();
+animate();
+tick();
